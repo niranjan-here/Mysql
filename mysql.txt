@@ -2,10 +2,10 @@
 
 MYSQL_PASSWORD="student"
 
-echo "🔍 Checking if MySQL is installed..."
+echo "🔍 Checking for existing MySQL installation..."
 
 if dpkg -l | grep -q mysql-server; then
-    echo "⚠️ MySQL is already installed. Removing it..."
+    echo "⚠️ Removing existing MySQL..."
 
     sudo systemctl stop mysql
 
@@ -15,36 +15,36 @@ if dpkg -l | grep -q mysql-server; then
 
     sudo rm -rf /etc/mysql /var/lib/mysql /var/log/mysql
 
-    echo "✅ MySQL removed successfully."
+    echo "✅ Old MySQL removed."
 else
-    echo "✅ MySQL is not installed."
+    echo "✅ No existing MySQL found."
 fi
 
-echo "📦 Updating package list..."
+echo "📦 Updating packages..."
 sudo apt-get update
 
-echo "📥 Installing MySQL server..."
-
-# Preconfigure MySQL root password
-sudo debconf-set-selections <<< "mysql-server mysql-server/root_password password $MYSQL_PASSWORD"
-sudo debconf-set-selections <<< "mysql-server mysql-server/root_password_again password $MYSQL_PASSWORD"
-
+echo "📥 Installing MySQL..."
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y mysql-server
 
-echo "🔐 Setting authentication method and password..."
+echo "⚙️ Configuring MySQL..."
 
 sudo mysql <<EOF
+-- Remove password validation completely (easiest policy)
+UNINSTALL COMPONENT 'file://component_validate_password';
+
+-- Ensure password-based login works
 ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${MYSQL_PASSWORD}';
+
 FLUSH PRIVILEGES;
 EOF
 
-echo "🚀 MySQL installation completed."
+echo "🚀 MySQL setup complete."
 
 echo "🧪 Testing login..."
 mysql -u root -p${MYSQL_PASSWORD} -e "SELECT VERSION();"
 
 if [ $? -eq 0 ]; then
-    echo "✅ MySQL is working with password 'student'."
+    echo "✅ Success! MySQL root password is 'student'"
 else
-    echo "❌ Something went wrong. Please check manually."
+    echo "❌ Login failed. Try: sudo mysql"
 fi
